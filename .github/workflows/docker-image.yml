@@ -28,5 +28,5 @@ jobs:
 
     - name: Push Docker Image to Docker Hub
       run: |
-        docker tag account-service:latest ${{ secrets.DOCKER_USERNAME }}/account-service:latest
-        docker push ${{ secrets.DOCKER_USERNAME }}/account-service:latest
+        docker tag account-service:latest ${{ secrets.DOCKERHUB_USERNAME  }}/account-service:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME  }}/account-service:latest
