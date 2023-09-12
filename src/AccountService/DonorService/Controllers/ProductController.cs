@@ -1,12 +1,9 @@
 ﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/products")]
@@ -29,8 +26,8 @@ public class ProductsController : ControllerBase
         try
         {
             // Retrieve the product by ProductId from DynamoDB
-            var table = Table.LoadTable(_dynamoDbClient, ""/*_tableName*/);
-            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId.ToString()));
+            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
+            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
             if (document.Count == 0)
@@ -61,11 +58,6 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] Product product)
     {
-        // Implement code to insert product metadata into DynamoDB.
-        // Example:
-        // Table productTable = Table.LoadTable(_dynamoDbClient, "ProductTable");
-        // Create a DynamoDB document and save it to the table.
-
         // Handle video and photo upload to Amazon S3.
         if (product.VideoFile != null)
         {
@@ -81,6 +73,24 @@ public class ProductsController : ControllerBase
             product.PhotoUrl = GetS3ObjectUrl(photoObjectKey);
         }
 
+        var request = new PutItemRequest
+        {
+            TableName = "Product_List",
+            Item = new Dictionary<string, AttributeValue>
+                {
+                    { "ProductId", new AttributeValue { N = product.ProductId.ToString() } },
+                    { "Name", new AttributeValue { S = product.Name } },
+                    { "Description", new AttributeValue { S = product.Description } },
+                    { "Price", new AttributeValue { N = product.Price.ToString() } },
+                    { "Category", new AttributeValue { S = product.Category } },
+                    { "VideoUrl", new AttributeValue { S = product.VideoUrl } },
+                    { "PhotoUrl", new AttributeValue { S = product.PhotoUrl } }
+                }
+        };
+
+        // Perform the PutItem operation to insert the product into DynamoDB
+        await _dynamoDbClient.PutItemAsync(request);
+
         // Return a response to the client, including the newly created product's data.
         // Replace with the actual URL or resource path for accessing the product.
         string productUrl = $"/api/products/{product.ProductId}";
@@ -94,7 +104,7 @@ public class ProductsController : ControllerBase
         try
         {
             // Check if the product with the given ID exists
-            var table = Table.LoadTable(_dynamoDbClient, ""/*_tableName*/);
+            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId.ToString()));
 
             var document = await search.GetNextSetAsync();
@@ -121,7 +131,6 @@ public class ProductsController : ControllerBase
         }
     }
 
-
     // DELETE: api/products/{productId}
     [HttpDelete("{productId}")]
     public async Task<IActionResult> DeleteProduct(int productId)
@@ -129,7 +138,7 @@ public class ProductsController : ControllerBase
         try
         {
             // Check if the product with the given ID exists
-            var table = Table.LoadTable(_dynamoDbClient, ""/*_tableName*/);
+            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId.ToString()));
 
             var document = await search.GetNextSetAsync();
@@ -156,7 +165,7 @@ public class ProductsController : ControllerBase
         try
         {
             // Query DynamoDB for products with the specified category
-            var table = Table.LoadTable(_dynamoDbClient, ""/*_tableName*/);
+            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
             var filter = new QueryFilter("Category", QueryOperator.Equal, categoryName);
             var search = table.Query(filter);
 

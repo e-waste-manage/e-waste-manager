@@ -1,4 +1,11 @@
+using Amazon.DynamoDBv2;
+using Amazon.S3;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.GetAWSOptions();
+builder.Services.AddAWSService<IAmazonDynamoDB>();
+builder.Services.AddAWSService<IAmazonS3>();
 
 // Add services to the container.
 

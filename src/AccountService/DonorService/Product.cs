@@ -2,6 +2,18 @@
 {
     public int ProductId { get; set; } // Primary key
 
+    public int Quantity { get; set; }
+
+    public Guid UserID { get; set; }
+
+    public string? PickupLocation { get; set; }
+
+    public string? ContactNumber { get; set; }
+
+    public string? Availability { get; set; }
+
+    public string? Status { get; set; } // Created, Reserved, Taken
+
     public string? Name { get; set; }
 
     public string? Description { get; set; }
@@ -19,4 +31,5 @@
     // If you need to handle file uploads, you can include byte arrays for video and photo
     public byte[]? VideoFile { get; set; }
     public byte[]? PhotoFile { get; set; }
+
 }
