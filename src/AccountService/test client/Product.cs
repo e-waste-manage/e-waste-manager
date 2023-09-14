@@ -34,9 +34,10 @@ public class Product
     public byte[]? VideoFile { get; set; }
     public byte[]? PhotoFile { get; set; }
 
-    //[FromForm]
-    //public IFormFile? testphoto { get; set; }
+    [FromForm]
+    public IFormFile? testphoto { get; set; }
 
-    //[FromForm]
-    //public IFormFile? testvideo { get; set; }
+    [FromForm]
+    public IFormFile? testvideo { get; set; }
+
 }

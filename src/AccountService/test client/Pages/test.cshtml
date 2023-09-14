@@ -1,0 +1,34 @@
+﻿@page
+@model CreateProductModel
+@{
+    ViewData["Title"] = "Create Product Listing";
+}
+
+<h1>Create Product Listing</h1>
+<form method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label asp-for="Product.Name"></label>
+        <input asp-for="Product.Name" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label asp-for="Product.ProductId"></label>
+        <input asp-for="Product.ProductId" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label asp-for="Product.Description"></label>
+        <textarea asp-for="Product.Description" class="form-control" required></textarea>
+    </div>
+    <div class="form-group">
+        <label asp-for="Product.Price"></label>
+        <input asp-for="Product.Price" class="form-control" step="0.01" required />
+    </div>
+    <div class="form-group">
+        <label asp-for="Product.Category"></label>
+        <input asp-for="Product.Category" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label asp-for="Product.testphoto"></label>
+        <input asp-for="Product.testphoto" type="file" class="form-control" accept="image/*" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Create Product Listing</button>
+</form>

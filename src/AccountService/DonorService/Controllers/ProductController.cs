@@ -11,7 +11,7 @@ public class ProductsController : ControllerBase
 {
     private readonly IAmazonDynamoDB _dynamoDbClient;
     private readonly IAmazonS3 _s3Client;
-    private readonly string _s3BucketName = "YOUR_S3_BUCKET_NAME";
+    private readonly string _s3BucketName = "ewastestore1";
 
     public ProductsController(IAmazonDynamoDB dynamoDbClient, IAmazonS3 s3Client)
     {
@@ -43,9 +43,18 @@ public class ProductsController : ControllerBase
                 Description = document[0]["Description"],
                 Price = decimal.Parse(document[0]["Price"]),
                 Category = document[0]["Category"],
-                VideoUrl = document[0]["VideoUrl"],
-                PhotoUrl = document[0]["PhotoUrl"]
             };
+
+            if (document[0].TryGetValue("PhotoUrl", out DynamoDBEntry photourl))
+            {
+                product.PhotoUrl = photourl;
+            }
+
+            if (document[0].TryGetValue("VideoUrl", out DynamoDBEntry videourl))
+            {
+                product.VideoUrl = videourl;
+            }
+
 
             return Ok(product);
         }
@@ -58,6 +67,21 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] Product product)
     {
+
+        //if (product.PhotoUrl == null && product.PhotoFile == null && product.testphoto != null)
+        //{
+        //    using var memoryStream = new MemoryStream();
+        //    await product.testphoto.CopyToAsync(memoryStream);
+        //    product.PhotoFile = memoryStream.ToArray();
+        //}
+
+        //if (product.VideoUrl == null && product.VideoFile == null && product.testvideo != null)
+        //{
+        //    using var memoryStream = new MemoryStream();
+        //    await product.testvideo.CopyToAsync(memoryStream);
+        //    product.VideoFile = memoryStream.ToArray();
+        //}
+
         // Handle video and photo upload to Amazon S3.
         if (product.VideoFile != null)
         {
@@ -82,11 +106,19 @@ public class ProductsController : ControllerBase
                     { "Name", new AttributeValue { S = product.Name } },
                     { "Description", new AttributeValue { S = product.Description } },
                     { "Price", new AttributeValue { N = product.Price.ToString() } },
-                    { "Category", new AttributeValue { S = product.Category } },
-                    { "VideoUrl", new AttributeValue { S = product.VideoUrl } },
-                    { "PhotoUrl", new AttributeValue { S = product.PhotoUrl } }
+                    { "Category", new AttributeValue { S = product.Category } }
                 }
         };
+
+        if (product.VideoUrl != null)
+        {
+            request.Item.Add("VideoUrl", new AttributeValue { S = product.VideoUrl });
+        }
+
+        if (product.PhotoUrl != null)
+        {
+            request.Item.Add("PhotoUrl", new AttributeValue { S = product.PhotoUrl });
+        }
 
         // Perform the PutItem operation to insert the product into DynamoDB
         await _dynamoDbClient.PutItemAsync(request);
