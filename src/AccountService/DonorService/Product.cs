@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DonorService;
+using Microsoft.AspNetCore.Mvc;
 
 public class Product
 {
-    public int ProductId { get; set; } // Primary key
+    public Guid ProductId { get; set; } // Primary key
+
+    public DateTime ListedDate {get; set;}
 
     public int Quantity { get; set; }
 
@@ -12,17 +15,13 @@ public class Product
 
     public string? ContactNumber { get; set; }
 
-    public string? Availability { get; set; }
-
-    public string? Status { get; set; } // Created, Reserved, Taken
+    public ProductStatus? Status { get; set; } // Created, Reserved, Taken
 
     public string? Name { get; set; }
 
     public string? Description { get; set; }
 
-    public decimal Price { get; set; }
-
-    public string? Category { get; set; }
+    public ProductCategory? Category { get; set; }
 
     // Reference to the video stored in S3
     public string? VideoUrl { get; set; }
@@ -39,4 +38,12 @@ public class Product
 
     //[FromForm]
     //public IFormFile? testvideo { get; set; }
+
+    public Product()
+    {
+        ListedDate = DateTime.Now;
+        Status = ProductStatus.Created;
+        Quantity = 1;
+    }
+
 }

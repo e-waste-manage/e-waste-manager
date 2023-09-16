@@ -2,8 +2,10 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
+using Amazon.Runtime.Internal.Transform;
 using Amazon.S3;
 using Amazon.S3.Model;
+using DonorService;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -13,6 +15,7 @@ public class ProductsController : ControllerBase
     private readonly IAmazonDynamoDB _dynamoDbClient;
     private readonly IAmazonS3 _s3Client;
     private readonly string _s3BucketName = "ewastestore1";
+    private readonly string _dynamoDBTableName = "ProductList";
 
     public ProductsController(IAmazonDynamoDB dynamoDbClient, IAmazonS3 s3Client)
     {
@@ -22,12 +25,12 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/{productId}
     [HttpGet("{productId}")]
-    public async Task<IActionResult> GetProduct(int productId)
+    public async Task<IActionResult> GetProduct(Guid productId)
     {
         try
         {
             // Retrieve the product by ProductId from DynamoDB
-            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
+            var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
@@ -39,11 +42,10 @@ public class ProductsController : ControllerBase
             // Map the DynamoDB document to your Product model
             var product = new Product
             {
-                ProductId = int.Parse(document[0]["ProductId"]),
+                ProductId = Guid.Parse(document[0]["ProductId"]),
                 Name = document[0]["Name"],
                 Description = document[0]["Description"],
-                Price = decimal.Parse(document[0]["Price"]),
-                Category = document[0]["Category"],
+                Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), document[0]["Category"])
             };
 
             if (document[0].TryGetValue("PhotoUrl", out DynamoDBEntry photourl))
@@ -100,16 +102,22 @@ public class ProductsController : ControllerBase
 
         var request = new PutItemRequest
         {
-            TableName = "Product_List",
+            TableName = _dynamoDBTableName,
             Item = new Dictionary<string, AttributeValue>
                 {
-                    { "ProductId", new AttributeValue { N = product.ProductId.ToString() } },
+                    { "ProductId", new AttributeValue { S = product.ProductId.ToString() } },
+                    { "ListedDate" , new AttributeValue {S = product.ListedDate.ToString() } },
+                    { "Quantity" , new AttributeValue {N = product.Quantity.ToString() } },
                     { "Name", new AttributeValue { S = product.Name } },
                     { "Description", new AttributeValue { S = product.Description } },
-                    { "Price", new AttributeValue { N = product.Price.ToString() } },
-                    { "Category", new AttributeValue { S = product.Category } }
+                    { "Category", new AttributeValue { S = product.Category.ToString() } },
+                    { "PickupLocation", new AttributeValue { S = product.PickupLocation.ToString() } },
+                    { "ContactNumber", new AttributeValue { S = product.ContactNumber.ToString() } },
+                    { "Status", new AttributeValue { S = product.Status.ToString() } },
+                    { "UserID", new AttributeValue { S = product.UserID.ToString() } }
                 }
         };
+
 
         if (product.VideoUrl != null)
         {
@@ -132,12 +140,12 @@ public class ProductsController : ControllerBase
 
     // PUT: api/products/{productId}
     [HttpPut("{productId}")]
-    public async Task<IActionResult> UpdateProduct(int productId, [FromBody] Product updatedProduct)
+    public async Task<IActionResult> UpdateProduct(Guid productId, [FromBody] Product updatedProduct)
     {
         try
         {
             // Check if the product with the given ID exists
-            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
+            var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
@@ -150,8 +158,7 @@ public class ProductsController : ControllerBase
             var existingProduct = document[0];
             existingProduct["Name"] = updatedProduct.Name;
             existingProduct["Description"] = updatedProduct.Description;
-            existingProduct["Price"] = updatedProduct.Price.ToString();
-            existingProduct["Category"] = updatedProduct.Category;
+            existingProduct["Category"] = updatedProduct.Category.ToString();
 
             // Save the updated product to DynamoDB
             await table.UpdateItemAsync(existingProduct);
@@ -166,12 +173,12 @@ public class ProductsController : ControllerBase
 
     // DELETE: api/products/{productId}
     [HttpDelete("{productId}")]
-    public async Task<IActionResult> DeleteProduct(int productId)
+    public async Task<IActionResult> DeleteProduct(Guid productId)
     {
         try
         {
             // Check if the product with the given ID exists
-            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
+            var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
@@ -204,7 +211,7 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/category/{categoryName}
     [HttpGet("category/{categoryName}")]
-    public async Task<IActionResult> GetProductsByCategory(string categoryName)
+    public async Task<IActionResult> FilterandSort(string categoryName, bool usedate, bool location, int page)
     {
         try
         {
@@ -228,11 +235,10 @@ public class ProductsController : ControllerBase
                 {
                     var product = new Product
                     {
-                        ProductId = int.Parse(item["ProductId"].S),
+                        ProductId = Guid.Parse(item["ProductId"].S),
                         Name = item["Name"].S,
                         Description = item["Description"].S,
-                        Price = decimal.Parse(item["Price"].S),
-                        Category = item["Category"].S,
+                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
                         VideoUrl = item["VideoUrl"].S,
                         PhotoUrl = item["PhotoUrl"].S   
                     };
