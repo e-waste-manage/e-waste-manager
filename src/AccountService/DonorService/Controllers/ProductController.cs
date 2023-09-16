@@ -11,7 +11,7 @@ public class ProductsController : ControllerBase
 {
     private readonly IAmazonDynamoDB _dynamoDbClient;
     private readonly IAmazonS3 _s3Client;
-    private readonly string _s3BucketName = "ewastestore1";
+    private readonly string _s3BucketName = "ewastestore";
 
     public ProductsController(IAmazonDynamoDB dynamoDbClient, IAmazonS3 s3Client)
     {
@@ -47,15 +47,15 @@ public class ProductsController : ControllerBase
 
             if (document[0].TryGetValue("PhotoUrl", out DynamoDBEntry photourl))
             {
-                product.PhotoUrl = photourl;
+                string signedPhotoUrl = GetSignedS3ObjectUrl(photourl);
+                product.PhotoUrl = signedPhotoUrl;
             }
 
             if (document[0].TryGetValue("VideoUrl", out DynamoDBEntry videourl))
             {
-                product.VideoUrl = videourl;
+                string signedVideoUrl = GetSignedS3ObjectUrl(videourl);
+                product.VideoUrl = signedVideoUrl;
             }
-
-
             return Ok(product);
         }
         catch (Exception ex)
@@ -252,5 +252,22 @@ public class ProductsController : ControllerBase
     private string GetS3ObjectUrl(string objectKey)
     {
         return $"https://{_s3BucketName}.s3.amazonaws.com/{objectKey}";
+    }
+
+    private string GetSignedS3ObjectUrl(DynamoDBEntry unsignedUrl)
+    {
+        string[] parts = unsignedUrl.AsString().Split('/');
+        string objectKey = parts[parts.Length - 1];
+
+        GetPreSignedUrlRequest request = new GetPreSignedUrlRequest
+        {
+            BucketName = _s3BucketName,
+            Key = objectKey,
+            Expires = DateTime.Now.AddMinutes(5)
+        };
+
+        string signedUrl = _s3Client.GetPreSignedURL(request);
+
+        return signedUrl;
     }
 }
