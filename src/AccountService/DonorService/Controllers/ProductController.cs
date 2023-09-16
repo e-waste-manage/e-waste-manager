@@ -137,7 +137,7 @@ public class ProductsController : ControllerBase
         {
             // Check if the product with the given ID exists
             var table = Table.LoadTable(_dynamoDbClient, "Product_List");
-            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId.ToString()));
+            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
             if (document.Count == 0)
@@ -196,36 +196,38 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            // Query DynamoDB for products with the specified category
-            var table = Table.LoadTable(_dynamoDbClient, "Product_List");
-            var filter = new QueryFilter("Category", QueryOperator.Equal, categoryName);
-            var search = table.Query(filter);
 
-            var productDocuments = await search.GetNextSetAsync();
-
-            if (productDocuments.Count == 0)
+            using (var client = new AmazonDynamoDBClient())
             {
-                return NotFound($"No products found in category '{categoryName}'.");
-            }
-
-            // Map the DynamoDB documents to a list of Product models
-            var products = new List<Product>();
-            foreach (var document in productDocuments)
-            {
-                var product = new Product
+                var request = new QueryRequest
                 {
-                    ProductId = int.Parse(document["ProductId"]),
-                    Name = document["Name"],
-                    Description = document["Description"],
-                    Price = decimal.Parse(document["Price"]),
-                    Category = document["Category"],
-                    VideoUrl = document["VideoUrl"],
-                    PhotoUrl = document["PhotoUrl"]
+                    TableName = "Product_List",
+                    KeyConditionExpression = "Category = :category",
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":category", new AttributeValue { S = categoryName } }
+                    }
                 };
-                products.Add(product);
-            }
 
-            return Ok(products);
+                var response = await client.QueryAsync(request);
+
+                var products = new List<Product>();
+                foreach (var item in response.Items)
+                {
+                    var product = new Product
+                    {
+                        ProductId = int.Parse(item["ProductId"].S),
+                        Name = item["Name"].S,
+                        Description = item["Description"].S,
+                        Price = decimal.Parse(item["Price"].S),
+                        Category = item["Category"].S,
+                        VideoUrl = item["VideoUrl"].S,
+                        PhotoUrl = item["PhotoUrl"].S   
+                    };
+                    products.Add(product);
+                }
+                return Ok(products);
+            }
         }
         catch (Exception ex)
         {
