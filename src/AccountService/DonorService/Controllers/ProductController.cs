@@ -1,4 +1,5 @@
-﻿using Amazon.DynamoDBv2;
+﻿using System.Linq;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Amazon.S3;
@@ -11,7 +12,7 @@ public class ProductsController : ControllerBase
 {
     private readonly IAmazonDynamoDB _dynamoDbClient;
     private readonly IAmazonS3 _s3Client;
-    private readonly string _s3BucketName = "ewastestore";
+    private readonly string _s3BucketName = "ewastestore1";
 
     public ProductsController(IAmazonDynamoDB dynamoDbClient, IAmazonS3 s3Client)
     {
@@ -171,12 +172,23 @@ public class ProductsController : ControllerBase
         {
             // Check if the product with the given ID exists
             var table = Table.LoadTable(_dynamoDbClient, "Product_List");
-            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId.ToString()));
+            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
 
             var document = await search.GetNextSetAsync();
+
             if (document.Count == 0)
             {
                 return NotFound($"Product with ID {productId} not found.");
+            }
+
+            if (document[0].TryGetValue("PhotoUrl", out DynamoDBEntry photourl))
+            {
+                _ = DeleteFileFromS3(photourl);
+            }
+
+            if (document[0].TryGetValue("VideoUrl", out DynamoDBEntry videourl))
+            {
+                _ = DeleteFileFromS3(videourl);
             }
 
             // Delete the product from DynamoDB
@@ -249,6 +261,18 @@ public class ProductsController : ControllerBase
 
             await _s3Client.PutObjectAsync(request);
         }
+    }
+    private async Task DeleteFileFromS3(string s3Url)
+    {
+        string[] parts = s3Url.Split('/');
+        string objectKey = parts[parts.Length - 1];
+
+        var request = new DeleteObjectRequest
+        {
+            BucketName = _s3BucketName,
+            Key = objectKey,
+        };
+        await _s3Client.DeleteObjectAsync(request);  
     }
 
     private string GetS3ObjectUrl(string objectKey)
