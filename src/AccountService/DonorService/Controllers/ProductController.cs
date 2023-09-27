@@ -44,8 +44,14 @@ public class ProductsController : ControllerBase
             {
                 ProductId = Guid.Parse(document[0]["ProductId"]),
                 Name = document[0]["Name"],
+                ListedDate = (DateTime)document[0]["ListedDate"],
+                Quantity = (int)document[0]["Quantity"],
                 Description = document[0]["Description"],
-                Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), document[0]["Category"])
+                Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), document[0]["Category"]),
+                PickupLocation = document[0]["PickupLocation"],
+                ContactNumber = document[0]["ContactNumber"],
+                Status = (ProductStatus)Enum.Parse(typeof(ProductStatus),document[0]["ProductStatus"]),
+                UserID = Guid.Parse(document[0]["UserID"])
             };
 
             if (document[0].TryGetValue("PhotoUrl", out DynamoDBEntry photourl))
@@ -70,21 +76,6 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] Product product)
     {
-
-        //if (product.PhotoUrl == null && product.PhotoFile == null && product.testphoto != null)
-        //{
-        //    using var memoryStream = new MemoryStream();
-        //    await product.testphoto.CopyToAsync(memoryStream);
-        //    product.PhotoFile = memoryStream.ToArray();
-        //}
-
-        //if (product.VideoUrl == null && product.VideoFile == null && product.testvideo != null)
-        //{
-        //    using var memoryStream = new MemoryStream();
-        //    await product.testvideo.CopyToAsync(memoryStream);
-        //    product.VideoFile = memoryStream.ToArray();
-        //}
-
         // Handle video and photo upload to Amazon S3.
         if (product.VideoFile != null)
         {
@@ -105,15 +96,15 @@ public class ProductsController : ControllerBase
             TableName = _dynamoDBTableName,
             Item = new Dictionary<string, AttributeValue>
                 {
-                    { "ProductId", new AttributeValue { S = product.ProductId.ToString() } },
-                    { "ListedDate" , new AttributeValue {S = product.ListedDate.ToString() } },
+                    { "ProductId", new AttributeValue { S = Guid.NewGuid().ToString() } },
+                    { "ListedDate" , new AttributeValue {S = DateTime.Now.ToString() } },
                     { "Quantity" , new AttributeValue {N = product.Quantity.ToString() } },
                     { "Name", new AttributeValue { S = product.Name } },
                     { "Description", new AttributeValue { S = product.Description } },
                     { "Category", new AttributeValue { S = product.Category.ToString() } },
                     { "PickupLocation", new AttributeValue { S = product.PickupLocation.ToString() } },
                     { "ContactNumber", new AttributeValue { S = product.ContactNumber.ToString() } },
-                    { "Status", new AttributeValue { S = product.Status.ToString() } },
+                    { "ProductStatus", new AttributeValue { S = product.Status.ToString() } },
                     { "UserID", new AttributeValue { S = product.UserID.ToString() } }
                 }
         };
@@ -159,6 +150,38 @@ public class ProductsController : ControllerBase
             existingProduct["Name"] = updatedProduct.Name;
             existingProduct["Description"] = updatedProduct.Description;
             existingProduct["Category"] = updatedProduct.Category.ToString();
+            existingProduct["Quantity"] = updatedProduct.Quantity;
+            existingProduct["PickupLocation"] = updatedProduct.PickupLocation;
+            existingProduct["ContactNumber"] = updatedProduct.ContactNumber;
+            existingProduct["ProductStatus"] = updatedProduct.Status.ToString();
+
+            if (updatedProduct.VideoFile != null)
+            {
+                string videoObjectKey = Guid.NewGuid().ToString() + ".mp4";
+                await UploadFileToS3(updatedProduct.VideoFile, videoObjectKey);
+                updatedProduct.VideoUrl = GetS3ObjectUrl(videoObjectKey);
+            }
+
+            if (updatedProduct.PhotoFile != null)
+            {
+                string photoObjectKey = Guid.NewGuid().ToString() + ".jpg";
+                await UploadFileToS3(updatedProduct.PhotoFile, photoObjectKey);
+                updatedProduct.PhotoUrl = GetS3ObjectUrl(photoObjectKey);
+            }
+
+            if (existingProduct.TryGetValue("VideoUrl", out var vurl) && updatedProduct.VideoUrl != null)
+            {
+                _ = DeleteFileFromS3(vurl);
+                existingProduct["VideoUrl"] = updatedProduct.VideoUrl;
+            }
+            else existingProduct.Add("VideoUrl", updatedProduct.VideoUrl);
+
+            if (existingProduct.TryGetValue("PhotoUrl", out var purl) && updatedProduct.PhotoUrl != null )
+            {
+                _ = DeleteFileFromS3(purl);
+                existingProduct["PhotoUrl"] = updatedProduct.PhotoUrl;
+            }
+            else existingProduct.Add("PhotoUrl", updatedProduct.PhotoUrl);
 
             // Save the updated product to DynamoDB
             await table.UpdateItemAsync(existingProduct);
@@ -211,26 +234,30 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/category/{categoryName}
     [HttpGet("category/{categoryName}")]
-    public async Task<IActionResult> FilterandSort(string categoryName, bool usedate, bool location, int page)
+    public async Task<IActionResult> FilterandSort(ProductCategory categoryName)
     {
         try
         {
-
             using (var client = new AmazonDynamoDBClient())
             {
                 var request = new QueryRequest
                 {
-                    TableName = "Product_List",
+                    TableName = "ProductList",
+                    IndexName = "CategorySort",
                     KeyConditionExpression = "Category = :category",
+                    ScanIndexForward = false,
+                    FilterExpression = "ProductStatus = :status", // Filter condition on a non-key attribute
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
-                        { ":category", new AttributeValue { S = categoryName } }
-                    }
+                        { ":category", new AttributeValue { S = categoryName.ToString() }},
+                        { ":status", new AttributeValue { S = ProductStatus.Created.ToString() }}
+                    },
                 };
 
                 var response = await client.QueryAsync(request);
 
                 var products = new List<Product>();
+
                 foreach (var item in response.Items)
                 {
                     var product = new Product
@@ -238,12 +265,14 @@ public class ProductsController : ControllerBase
                         ProductId = Guid.Parse(item["ProductId"].S),
                         Name = item["Name"].S,
                         Description = item["Description"].S,
-                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
-                        VideoUrl = item["VideoUrl"].S,
-                        PhotoUrl = item["PhotoUrl"].S   
+                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S)
                     };
+                    if (item.TryGetValue("VideoUrl", out var vurl)) product.VideoUrl = GetSignedS3ObjectUrl(vurl.S);
+                    if (item.TryGetValue("PhotoUrl", out var purl)) product.PhotoUrl = GetSignedS3ObjectUrl(purl.S);
                     products.Add(product);
                 }
+
+
                 return Ok(products);
             }
         }

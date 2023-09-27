@@ -1,5 +1,4 @@
 ﻿using DonorService;
-using Microsoft.AspNetCore.Mvc;
 
 public class Product
 {
@@ -31,19 +30,6 @@ public class Product
 
     // If you need to handle file uploads, you can include byte arrays for video and photo
     public byte[]? VideoFile { get; set; }
+
     public byte[]? PhotoFile { get; set; }
-
-    //[FromForm]
-    //public IFormFile? testphoto { get; set; }
-
-    //[FromForm]
-    //public IFormFile? testvideo { get; set; }
-
-    public Product()
-    {
-        ListedDate = DateTime.Now;
-        Status = ProductStatus.Created;
-        Quantity = 1;
-    }
-
 }
