@@ -13,11 +13,15 @@ namespace ReceiverService.Controllers
         private readonly IAmazonDynamoDB _dynamoDbClient;
         private readonly string _dynamoDBTableName = "RequestList";
         private readonly ILogger<ReceiverController> _logger;
+        private readonly HttpClient _httpClient;
+        private readonly string updateproductstatusurl;
 
         public ReceiverController(ILogger<ReceiverController> logger, IAmazonDynamoDB dynamoDbClient)
         {
             _logger = logger;
             _dynamoDbClient = dynamoDbClient;
+            _httpClient = new HttpClient();
+            updateproductstatusurl = "";
         }
 
         [HttpGet("{requestId}")]
@@ -62,7 +66,6 @@ namespace ReceiverService.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
 
         [HttpPost]
         public async Task<IActionResult> CreateRequest([FromBody] ReceiverItemRequest receiverItemRequest)
@@ -148,6 +151,47 @@ namespace ReceiverService.Controllers
             }
         }
 
+        // GET: api/updatestatus/{productId}/{status}
+        [HttpGet("updatestatus/{requestId}/{status}/{productid}")]
+        public async Task<IActionResult> UpdateProductStatus(Guid requestId, RequestStatus status, Guid? productid)
+        {
+            try
+            {
+                // Check if the product with the given ID exists
+                var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
+                var search = table.Query(new QueryFilter("RequestId", QueryOperator.Equal, requestId));
+
+                var document = await search.GetNextSetAsync();
+                if (document.Count == 0)
+                {
+                    return NotFound($"Request with ID {requestId} not found.");
+                }
+
+                // Update the product attributes
+                var existingItemRequest = document[0];
+                existingItemRequest["RequestStatus"] = status.ToString();
+
+                if(productid != null &&  productid != Guid.Empty)
+                {
+                    existingItemRequest["ProductId"] = productid.ToString();
+                    if (status == RequestStatus.PendingAcceptance)
+                    {
+                        string updateurl = updateproductstatusurl + $"/{productid}/1";
+                        _httpClient.GetAsync(updateurl).Wait();
+                    }
+                }
+
+                // Save the updated product to DynamoDB
+                await table.UpdateItemAsync(existingItemRequest);
+
+                return Ok(existingItemRequest);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
 
         [HttpDelete("{requestId}")]
         public async Task<IActionResult> DeleteProduct(Guid requestId)
@@ -187,8 +231,8 @@ namespace ReceiverService.Controllers
                     {
                         TableName = "RequestList",
                         IndexName = "CategorySort",
-                        KeyConditionExpression = "Category = :category AND RequestStatus = :status",
-                        ScanIndexForward = false,
+                        KeyConditionExpression = "Category = :category",
+                        FilterExpression = "RequestStatus = :status",
                         ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
                         { ":category", new AttributeValue { S = categoryName.ToString() }},
@@ -208,6 +252,7 @@ namespace ReceiverService.Controllers
                             RequestItemName = item["RequestItemName"].S,
                             Description = item["Description"].S,
                             ContactNumber = item["ContactNumber"].S,
+                            RequestDate = DateTime.Parse(item["RequestDate"].S)
                         };
 
                         ItemRequests.Add(ItemRequest);

@@ -4,6 +4,8 @@
     {
         public Guid RequestId { get; set; } // Primary key
 
+        public Guid? ProductId { get; set; }    
+
         public int Quantity { get; set; }
 
         public Guid ReceiverId { get; set; }

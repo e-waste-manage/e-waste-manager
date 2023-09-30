@@ -194,6 +194,37 @@ public class ProductsController : ControllerBase
         }
     }
 
+    // GET: api/products/{productId}/{status}
+    [HttpGet("updatestatus/{productId}/{status}")]
+    public async Task<IActionResult> UpdateProductStatus (Guid productId, ProductStatus status)
+    {
+        try
+        {
+            // Check if the product with the given ID exists
+            var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
+            var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
+
+            var document = await search.GetNextSetAsync();
+            if (document.Count == 0)
+            {
+                return NotFound($"Product with ID {productId} not found.");
+            }
+
+            // Update the product attributes
+            var existingProduct = document[0];
+            existingProduct["ProductStatus"] = status.ToString();
+
+            // Save the updated product to DynamoDB
+            await table.UpdateItemAsync(existingProduct);
+
+            return Ok(existingProduct);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal Server Error: {ex.Message}");
+        }
+    }
+
     // DELETE: api/products/{productId}
     [HttpDelete("{productId}")]
     public async Task<IActionResult> DeleteProduct(Guid productId)

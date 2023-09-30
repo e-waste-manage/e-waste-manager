@@ -5,6 +5,9 @@ using Amazon.DynamoDBv2;
 using Amazon.SimpleEmail;
 using ReceiverService.Models;
 using DonorService;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using Amazon.SimpleEmail.Model;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -15,18 +18,19 @@ public class DynamoDBStreamFunction
 {
     private readonly IAmazonDynamoDB _dynamoDBClient;
     private readonly IAmazonSimpleEmailService _sesClient;
-    private const string ProductRequestsTableName = "ProductRequests"; // Update with your table names
+    private readonly HttpClient _httpClient;
+    private readonly string matchingrequestapiurl;
+    private readonly string getproducturl;
+    private readonly string updaterequeststatusurl;
 
     public DynamoDBStreamFunction()
     {
         _dynamoDBClient = new AmazonDynamoDBClient();
         _sesClient = new AmazonSimpleEmailServiceClient();
-    }
-
-    public DynamoDBStreamFunction(IAmazonDynamoDB dynamoDBClient, IAmazonSimpleEmailService sesClient)
-    {
-        _dynamoDBClient = dynamoDBClient;
-        _sesClient = sesClient;
+        _httpClient = new HttpClient();
+        matchingrequestapiurl = "";
+        getproducturl = "";
+        updaterequeststatusurl = "";
     }
 
     public async Task FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
@@ -40,9 +44,6 @@ public class DynamoDBStreamFunction
                 // Retrieve and process product requests
                 var matchingRequests = await FindMatchingRequests(newProduct);
 
-                // Update the product and request statuses
-                await UpdateStatus(newProduct, matchingRequests);
-
                 // Send email notifications
                 await SendEmailNotifications(newProduct, matchingRequests);
             }
@@ -52,35 +53,24 @@ public class DynamoDBStreamFunction
     private async Task<List<ReceiverItemRequest>> FindMatchingRequests(Product newProduct)
     {
         var matchingRequests = new List<ReceiverItemRequest>();
-
         try
         {
-            // Create a DynamoDB client
-            var dynamoDBClient = new AmazonDynamoDBClient();
+            string requesturl = matchingrequestapiurl + $"/{newProduct.Category}";
+            HttpResponseMessage response = await _httpClient.GetAsync(matchingrequestapiurl);
+            List<ReceiverItemRequest>? PotentialMatch = new List<ReceiverItemRequest>();
 
-            // Define the DynamoDB request
-            var request = new ScanRequest
+            if (response.IsSuccessStatusCode)
             {
-                TableName = "ReceiverRequests", // Replace with your actual table name
-                FilterExpression = "Category = :category AND Status = :status",
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-            {
-                { ":category", new AttributeValue { S = newProduct.Category.ToString() } },
-                { ":status", new AttributeValue { S = "Created" } } // Adjust status as needed
-            }
-            };
-
-            // Execute the scan operation
-            var response = await dynamoDBClient.ScanAsync(request);
-
-            // Process the scan results
-            foreach (var item in response.Items)
-            {
-                var request = DeserializeReceiverRequestItem(item);
-                if (IsMatchingRequest(newProduct, request))
+                // Handle the API response here
+                string apiResponse = await response.Content.ReadAsStringAsync();
+                if (apiResponse != null)
                 {
-                    matchingRequests.Add(request);
+                    PotentialMatch = JsonSerializer.Deserialize<List<ReceiverItemRequest>>(apiResponse);
                 }
+            }
+            else
+            {
+                Console.WriteLine($"API request failed with status code: {response.StatusCode}");
             }
         }
         catch (Exception ex)
@@ -92,66 +82,42 @@ public class DynamoDBStreamFunction
         return matchingRequests;
     }
 
-    private async Task UpdateStatus(Product newProduct, List<ReceiverItemRequest> matchingRequests)
-    {
-        // Implement logic to update the status of the new product and the matching requests in DynamoDB.
-        // You'll need to use the _dynamoDBClient to perform the necessary update operations.
-
-        // Example pseudocode:
-        // foreach (var request in matchingRequests)
-        // {
-        //     var updateRequest = new UpdateItemRequest
-        //     {
-        //         TableName = ProductRequestsTableName,
-        //         Key = new Dictionary<string, AttributeValue>
-        //         {
-        //             { "RequestId", new AttributeValue { S = request.RequestId } }
-        //         },
-        //         UpdateExpression = "SET Status = :status",
-        //         ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-        //         {
-        //             { ":status", new AttributeValue { S = "UpdatedStatus" } }
-        //         }
-        //     };
-
-        //     await _dynamoDBClient.UpdateItemAsync(updateRequest);
-        // }
-
-        // Similar logic can be used to update the new product's status.
-
-        // Placeholder - replace with actual logic
-    }
-
     private async Task SendEmailNotifications(Product newProduct, List<ReceiverItemRequest> matchingRequests)
     {
-        // Implement logic to send email notifications to the product and request owners.
+        //Implement logic to send email notifications to the product and request owners.
         // You'll need to use the _sesClient to send emails using Amazon SES or another email service.
 
-        // Example pseudocode:
-        // foreach (var request in matchingRequests)
-        // {
-        //     var emailSubject = "Matching Product Request Found";
-        //     var emailBody = $"A matching product request has been found for your product: {newProduct.ProductName}";
+         //Example pseudocode:
+         foreach (var request in matchingRequests)
+        {
+            var emailSubject = "Matching Product Found";
 
-        //     var emailRequest = new SendEmailRequest
-        //     {
-        //         Source = "your_sender_email@example.com",
-        //         Destination = new Destination
-        //         {
-        //             ToAddresses = new List<string> { request.RequesterEmail }
-        //         },
-        //         Message = new Message
-        //         {
-        //             Subject = new Content(emailSubject),
-        //             Body = new Body
-        //             {
-        //                 Text = new Content(emailBody)
-        //             }
-        //         }
-        //     };
+            var productLink = $"<a href=\"{GenerateProductLink(newProduct)}\">{newProduct.Name}</a>";
+            var acceptLink = $"<a href=\"{GenerateAcceptLink(request, newProduct)}\">Accept</a>";
 
-        //     await _sesClient.SendEmailAsync(emailRequest);
-        // }
+            var emailBody = $"A matching product has been found for your request: {productLink}. " +
+                            $"Please click on this link to check more details. " +
+                            $"You may click the {acceptLink} button below to accept the item.";
+
+            var emailRequest = new SendEmailRequest
+            {
+                Source = "your_sender_email@example.com",
+                Destination = new Destination
+                {
+                    ToAddresses = new List<string> { request.ContactNumber }
+                },
+                Message = new Message
+                {
+                    Subject = new Content(emailSubject),
+                    Body = new Body
+                    {
+                        Text = new Content(emailBody)
+                    }
+                }
+            };
+
+            await _sesClient.SendEmailAsync(emailRequest);
+        }
 
         // Placeholder - replace with actual logic
     }
@@ -187,5 +153,16 @@ public class DynamoDBStreamFunction
 
         return product;
     }
+
+    private string GenerateProductLink (Product product)
+    {
+        return getproducturl + $"/{product.ProductId}";
+    }
+
+    private string GenerateAcceptLink(ReceiverItemRequest request, Product product)
+    {
+        return updaterequeststatusurl + $"/{request.RequestId}/{RequestStatus.PendingAcceptance}/{product.ProductId}";
+    }
+
 
 }
