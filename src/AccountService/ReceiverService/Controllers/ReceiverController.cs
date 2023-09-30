@@ -175,5 +175,52 @@ namespace ReceiverService.Controllers
                 return StatusCode(500, $"Internal Server Error: {ex.Message}");
             }
         }
+
+        [HttpGet("category/{categoryName}")]
+        public async Task<IActionResult> FilterandSort(RequestCategory categoryName)
+        {
+            try
+            {
+                using (var client = new AmazonDynamoDBClient())
+                {
+                    var request = new QueryRequest
+                    {
+                        TableName = "RequestList",
+                        IndexName = "CategorySort",
+                        KeyConditionExpression = "Category = :category AND RequestStatus = :status",
+                        ScanIndexForward = false,
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":category", new AttributeValue { S = categoryName.ToString() }},
+                        { ":status", new AttributeValue { S = RequestStatus.Created.ToString() }}
+                    },
+                    };
+
+                    var response = await client.QueryAsync(request);
+
+                    var ItemRequests = new List<ReceiverItemRequest>();
+
+                    foreach (var item in response.Items)
+                    {
+                        var ItemRequest = new ReceiverItemRequest
+                        {
+                            RequestId = Guid.Parse(item["RequestId"].S),
+                            RequestItemName = item["RequestItemName"].S,
+                            Description = item["Description"].S,
+                            ContactNumber = item["ContactNumber"].S,
+                        };
+
+                        ItemRequests.Add(ItemRequest);
+                    }
+
+
+                    return Ok(ItemRequests);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
     }
 }
