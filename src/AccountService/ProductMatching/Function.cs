@@ -16,7 +16,6 @@ namespace ProductMatching;
 
 public class DynamoDBStreamFunction
 {
-    private readonly IAmazonDynamoDB _dynamoDBClient;
     private readonly IAmazonSimpleEmailService _sesClient;
     private readonly HttpClient _httpClient;
     private readonly string matchingrequestapiurl;
@@ -25,12 +24,11 @@ public class DynamoDBStreamFunction
 
     public DynamoDBStreamFunction()
     {
-        _dynamoDBClient = new AmazonDynamoDBClient();
         _sesClient = new AmazonSimpleEmailServiceClient();
         _httpClient = new HttpClient();
-        matchingrequestapiurl = "";
-        getproducturl = "";
-        updaterequeststatusurl = "";
+        matchingrequestapiurl = Environment.GetEnvironmentVariable("matchingrequestapiurl");
+        getproducturl = Environment.GetEnvironmentVariable("getproducturl");
+        updaterequeststatusurl = Environment.GetEnvironmentVariable("updaterequeststatusurl");
     }
 
     public async Task FunctionHandler(DynamoDBEvent dynamoEvent, ILambdaContext context)
@@ -39,13 +37,19 @@ public class DynamoDBStreamFunction
         {
             if (record.EventName == OperationType.INSERT) // Check if it's an insert event
             {
+                Console.WriteLine("Reading Request");
                 var newProduct = DeserializeProductItem(record.Dynamodb.NewImage);
 
                 // Retrieve and process product requests
+                Console.WriteLine("FindMatchingRequests");
                 var matchingRequests = await FindMatchingRequests(newProduct);
+                Console.WriteLine("FindMatchingRequests Completed");
 
                 // Send email notifications
+                Console.WriteLine("SendEmailNotifications");
                 await SendEmailNotifications(newProduct, matchingRequests);
+                Console.WriteLine("SendEmailNotifications completed");
+
             }
         }
     }
@@ -56,8 +60,8 @@ public class DynamoDBStreamFunction
         try
         {
             string requesturl = matchingrequestapiurl + $"/{newProduct.Category}";
-            HttpResponseMessage response = await _httpClient.GetAsync(matchingrequestapiurl);
-            List<ReceiverItemRequest>? PotentialMatch = new List<ReceiverItemRequest>();
+            Console.WriteLine(requesturl);
+            HttpResponseMessage response = await _httpClient.GetAsync(requesturl);
 
             if (response.IsSuccessStatusCode)
             {
@@ -65,12 +69,12 @@ public class DynamoDBStreamFunction
                 string apiResponse = await response.Content.ReadAsStringAsync();
                 if (apiResponse != null)
                 {
-                    PotentialMatch = JsonSerializer.Deserialize<List<ReceiverItemRequest>>(apiResponse);
+                    matchingRequests =JsonSerializer.Deserialize<List<ReceiverItemRequest>>(apiResponse);
                 }
             }
             else
             {
-                Console.WriteLine($"API request failed with status code: {response.StatusCode}");
+                Console.WriteLine($"API request failed with status code: {response.StatusCode}, {response.Content}, {response.ReasonPhrase}");
             }
         }
         catch (Exception ex)
@@ -84,39 +88,48 @@ public class DynamoDBStreamFunction
 
     private async Task SendEmailNotifications(Product newProduct, List<ReceiverItemRequest> matchingRequests)
     {
+        Console.WriteLine(matchingRequests.Count);
         //Implement logic to send email notifications to the product and request owners.
         // You'll need to use the _sesClient to send emails using Amazon SES or another email service.
-
          //Example pseudocode:
          foreach (var request in matchingRequests)
         {
-            var emailSubject = "Matching Product Found";
-
-            var productLink = $"<a href=\"{GenerateProductLink(newProduct)}\">{newProduct.Name}</a>";
-            var acceptLink = $"<a href=\"{GenerateAcceptLink(request, newProduct)}\">Accept</a>";
-
-            var emailBody = $"A matching product has been found for your request: {productLink}. " +
-                            $"Please click on this link to check more details. " +
-                            $"You may click the {acceptLink} button below to accept the item.";
-
-            var emailRequest = new SendEmailRequest
+            try
             {
-                Source = "your_sender_email@example.com",
-                Destination = new Destination
-                {
-                    ToAddresses = new List<string> { request.ContactNumber }
-                },
-                Message = new Message
-                {
-                    Subject = new Content(emailSubject),
-                    Body = new Body
-                    {
-                        Text = new Content(emailBody)
-                    }
-                }
-            };
+                Console.WriteLine($"Sending email to {request.ContactNumber}");
+                var emailSubject = "Matching Product Found";
 
-            await _sesClient.SendEmailAsync(emailRequest);
+                var productLink = $"<a href=\"{GenerateProductLink(newProduct)}\">{newProduct.Name}</a>";
+                var acceptLink = $"<a href=\"{GenerateAcceptLink(request, newProduct)}\">Accept</a>";
+
+                var emailBody = $"A matching product has been found for your request: {productLink}. " +
+                                $"Please click on this link to check more details. " +
+                                $"You may click the {acceptLink} button below to accept the item.";
+
+                var emailRequest = new SendEmailRequest
+                {
+                    Source = "ewastemanag3r@gmail.com",
+                    Destination = new Destination
+                    {
+                        ToAddresses = new List<string> { request.ContactNumber }
+                    },
+                    Message = new Message
+                    {
+                        Subject = new Content(emailSubject),
+                        Body = new Body
+                        {
+                            Text = new Content(emailBody)
+                        }
+                    }
+                };
+
+                await _sesClient.SendEmailAsync(emailRequest);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
         }
 
         // Placeholder - replace with actual logic
