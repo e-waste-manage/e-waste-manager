@@ -116,6 +116,7 @@ namespace E_waste.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
+                    returnUrl = "/Products/Index";
                     return LocalRedirect(returnUrl);
                 }
                 if (result.RequiresTwoFactor)

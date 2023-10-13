@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("E_wasteDBContextConnection") ?? throw new InvalidOperationException("Connection string 'E_wasteDBContextConnection' not found.");
 
 builder.Services.AddDbContext<E_wasteDBContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ProductDBContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<E_wasteDBContext>();
 // Add services to the container.
