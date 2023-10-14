@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using E_waste.Areas.Identity.Data;
+using E_waste.Models;
 using Newtonsoft.Json;
 using System.Net.Http;
 
@@ -15,13 +16,18 @@ namespace E_waste.Controllers
     {
         private readonly ProductDBContext _context;
         private readonly HttpClient _httpClient;
+        private readonly HttpClient _httpClient2;
 
         public ProductsController(ProductDBContext context)
         {
             _context = context;
             _httpClient = new HttpClient()
             {
-                BaseAddress = new Uri("http://donorservice-dev.eba-3msbepdm.ap-southeast-1.elasticbeanstalk.com/")
+                BaseAddress = new Uri("https://localhost:7156/")
+            };
+            _httpClient2 = new HttpClient()
+            {
+                BaseAddress = new Uri("https://localhost:7128/")
             };
         }
 
@@ -104,50 +110,26 @@ namespace E_waste.Controllers
         // GET: Products/Request/5
         public async Task<IActionResult> Request(Guid? id)
         {
-            if (id == null || _context.Products == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var product = await _context.Products.FindAsync(id);
+            Product product = new Product();
+            HttpResponseMessage response = await _httpClient.GetAsync($"/api/products/{id}");
+            await _httpClient.GetAsync($"api/products/updatestatus/{id}/{ProductStatus.Reserved}");
+            if (response.IsSuccessStatusCode)
+            {
+                // Handle the API response here
+                string apiResponse = await response.Content.ReadAsStringAsync();
+                if (apiResponse != null)
+                {
+                    product = JsonConvert.DeserializeObject<Product>(apiResponse);
+                }
+            }
             if (product == null)
             {
                 return NotFound();
-            }
-            return View(product);
-        }
-
-        // POST: Products/Request/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Request(Guid id, [Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile")] Product product)
-        {
-            if (id != product.ProductId)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProductExists(product.ProductId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
             }
             return View(product);
         }
@@ -192,6 +174,24 @@ namespace E_waste.Controllers
         private bool ProductExists(Guid id)
         {
           return (_context.Products?.Any(e => e.ProductId == id)).GetValueOrDefault();
+        }
+
+
+        public IActionResult CreateRequest()
+        {
+            return View(new ReceiverRequestItem());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateRequest(ReceiverRequestItem requestItem)
+        {
+            if (ModelState.IsValid)
+            {
+                var responseMessage = await _httpClient2.PostAsJsonAsync("Receiver", requestItem);
+                return View("RequestCreated",requestItem);
+            }
+            return View(requestItem);
         }
     }
 }

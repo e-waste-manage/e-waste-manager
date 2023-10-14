@@ -44,7 +44,7 @@ public class ProductsController : ControllerBase
             {
                 ProductId = Guid.Parse(document[0]["ProductId"]),
                 Name = document[0]["Name"],
-                ListedDate = (DateTime)document[0]["ListedDate"],
+                ListedDate = DateTime.Parse(document[0]["ListedDate"]),
                 Quantity = (int)document[0]["Quantity"],
                 Description = document[0]["Description"],
                 Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), document[0]["Category"]),

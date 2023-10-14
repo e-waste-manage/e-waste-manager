@@ -92,7 +92,7 @@ namespace ReceiverService.Controllers
                         { "Category", new AttributeValue { S = receiverItemRequest.Category.ToString() } },
                         { "Quantity" , new AttributeValue {N = receiverItemRequest.Quantity.ToString() } },
                         { "PickupLocation", new AttributeValue { S = receiverItemRequest.PickupLocation.ToString() } },
-                        { "RequestStatus", new AttributeValue { S = receiverItemRequest.Status.ToString() } },
+                        { "RequestStatus", new AttributeValue { S = RequestStatus.Created.ToString() } },
                         { "RequestDate" , new AttributeValue {S = DateTime.Now.ToString() } }
                     }
                 };
