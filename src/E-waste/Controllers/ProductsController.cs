@@ -23,7 +23,7 @@ namespace E_waste.Controllers
             _context = context;
             _httpClient = new HttpClient()
             {
-                BaseAddress = new Uri("http://accountservice-dev.ap-southeast-1.elasticbeanstalk.com/")
+                BaseAddress = new Uri("http://donorservice-dev.eba-3msbepdm.ap-southeast-1.elasticbeanstalk.com/")
             };
             _httpClient2 = new HttpClient()
             {
