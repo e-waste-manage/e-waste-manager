@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Globalization;
+using System.Linq;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
@@ -44,7 +45,7 @@ public class ProductsController : ControllerBase
             {
                 ProductId = Guid.Parse(document[0]["ProductId"]),
                 Name = document[0]["Name"],
-                ListedDate = DateTime.Parse(document[0]["ListedDate"]),
+                ListedDate = DateTime.ParseExact(document[0]["ListedDate"], "dd/MM/yyyy", CultureInfo.InvariantCulture),
                 Quantity = (int)document[0]["Quantity"],
                 Description = document[0]["Description"],
                 Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), document[0]["Category"]),
@@ -76,28 +77,30 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] Product product)
     {
-        // Handle video and photo upload to Amazon S3.
-        if (product.VideoFile != null)
+        try
         {
-            string videoObjectKey = Guid.NewGuid().ToString() + ".mp4";
-            await UploadFileToS3(product.VideoFile, videoObjectKey);
-            product.VideoUrl = GetS3ObjectUrl(videoObjectKey);
-        }
+            // Handle video and photo upload to Amazon S3.
+            if (product.VideoFile != null)
+            {
+                string videoObjectKey = Guid.NewGuid().ToString() + ".mp4";
+                await UploadFileToS3(product.VideoFile, videoObjectKey);
+                product.VideoUrl = GetS3ObjectUrl(videoObjectKey);
+            }
 
-        if (product.PhotoFile != null)
-        {
-            string photoObjectKey = Guid.NewGuid().ToString() + ".jpg";
-            await UploadFileToS3(product.PhotoFile, photoObjectKey);
-            product.PhotoUrl = GetS3ObjectUrl(photoObjectKey);
-        }
+            if (product.PhotoFile != null)
+            {
+                string photoObjectKey = Guid.NewGuid().ToString() + ".jpg";
+                await UploadFileToS3(product.PhotoFile, photoObjectKey);
+                product.PhotoUrl = GetS3ObjectUrl(photoObjectKey);
+            }
 
-        var request = new PutItemRequest
-        {
-            TableName = _dynamoDBTableName,
-            Item = new Dictionary<string, AttributeValue>
+            var request = new PutItemRequest
+            {
+                TableName = _dynamoDBTableName,
+                Item = new Dictionary<string, AttributeValue>
                 {
                     { "ProductId", new AttributeValue { S = Guid.NewGuid().ToString() } },
-                    { "ListedDate" , new AttributeValue {S = DateTime.Now.ToShortDateString() } },
+                    { "ListedDate" , new AttributeValue {S = DateTime.Now.ToString("dd/MM/yyyy") } },
                     { "Quantity" , new AttributeValue {N = product.Quantity.ToString() } },
                     { "Name", new AttributeValue { S = product.Name } },
                     { "Description", new AttributeValue { S = product.Description } },
@@ -107,26 +110,32 @@ public class ProductsController : ControllerBase
                     { "ProductStatus", new AttributeValue { S = ProductStatus.Created.ToString() } },
                     { "UserID", new AttributeValue { S = product.UserID.ToString() } }
                 }
-        };
+            };
 
 
-        if (product.VideoUrl != null)
+            if (product.VideoUrl != null)
+            {
+                request.Item.Add("VideoUrl", new AttributeValue { S = product.VideoUrl });
+            }
+
+            if (product.PhotoUrl != null)
+            {
+                request.Item.Add("PhotoUrl", new AttributeValue { S = product.PhotoUrl });
+            }
+
+            // Perform the PutItem operation to insert the product into DynamoDB
+            await _dynamoDbClient.PutItemAsync(request);
+
+            // Return a response to the client, including the newly created product's data.
+            // Replace with the actual URL or resource path for accessing the product.
+            string productUrl = $"/api/products/{product.ProductId}";
+            return Created(productUrl, product);
+        }
+        catch (Exception ex)
         {
-            request.Item.Add("VideoUrl", new AttributeValue { S = product.VideoUrl });
+            return StatusCode(500, $"Internal Server Error: {ex}");
         }
 
-        if (product.PhotoUrl != null)
-        {
-            request.Item.Add("PhotoUrl", new AttributeValue { S = product.PhotoUrl });
-        }
-
-        // Perform the PutItem operation to insert the product into DynamoDB
-        await _dynamoDbClient.PutItemAsync(request);
-
-        // Return a response to the client, including the newly created product's data.
-        // Replace with the actual URL or resource path for accessing the product.
-        string productUrl = $"/api/products/{product.ProductId}";
-        return Created(productUrl, product);
     }
 
     // PUT: api/products/{productId}
@@ -299,7 +308,7 @@ public class ProductsController : ControllerBase
                         Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
                         PickupLocation = item["PickupLocation"].S,
                         ContactNumber = item["ContactNumber"].S,
-                        ListedDate = DateTime.Parse(item["ListedDate"].S)
+                        ListedDate = DateTime.ParseExact(item["ListedDate"].S, "dd/MM/yyyy", CultureInfo.InvariantCulture)
                     };
                     if (item.TryGetValue("VideoUrl", out var vurl)) product.VideoUrl = GetSignedS3ObjectUrl(vurl.S);
                     if (item.TryGetValue("PhotoUrl", out var purl)) product.PhotoUrl = GetSignedS3ObjectUrl(purl.S);
@@ -358,7 +367,7 @@ public class ProductsController : ControllerBase
         {
             BucketName = _s3BucketName,
             Key = objectKey,
-            Expires = DateTime.Now.AddMinutes(5)
+            Expires = DateTime.UtcNow.AddMinutes(5)
         };
 
         string signedUrl = _s3Client.GetPreSignedURL(request);
