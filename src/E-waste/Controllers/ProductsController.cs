@@ -6,23 +6,44 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using E_waste.Areas.Identity.Data;
+using Newtonsoft.Json;
+using System.Net.Http;
 
 namespace E_waste.Controllers
 {
     public class ProductsController : Controller
     {
         private readonly ProductDBContext _context;
+        private readonly HttpClient _httpClient;
 
         public ProductsController(ProductDBContext context)
         {
             _context = context;
+            _httpClient = new HttpClient()
+            {
+                BaseAddress = new Uri("http://donorservice-dev.eba-3msbepdm.ap-southeast-1.elasticbeanstalk.com/")
+            };
         }
 
         // GET: Products
         public async Task<IActionResult> Index([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile")] Product product)
         {
-              return _context.Products != null ? 
-                          View(await _context.Products.ToListAsync()) :
+            var products = new List<Product>();
+
+            HttpResponseMessage response = await _httpClient.GetAsync("/api/products/category/Laptop");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Handle the API response here
+                string apiResponse = await response.Content.ReadAsStringAsync();
+                if (apiResponse != null)
+                {
+                    products = JsonConvert.DeserializeObject<List<Product>>(apiResponse);
+                }
+            }
+
+            return products != null ? 
+                          View(products) :
                           Problem("Entity set 'ProductDBContext.Products'  is null.");
         }
 
@@ -55,13 +76,26 @@ namespace E_waste.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddOrEdit([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile")] Product product)
+        public async Task<IActionResult> AddOrEdit([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile,ProductPhoto")] Product product)
         {
             if (ModelState.IsValid)
             {
-                product.ProductId = Guid.NewGuid();
-                _context.Add(product);
-                await _context.SaveChangesAsync();
+                if (product.ProductPhoto != null && product.ProductPhoto.Length > 0)
+                {
+                    // Read the file stream into a byte array
+                    using (var stream = new MemoryStream())
+                    {
+                        await product.ProductPhoto.CopyToAsync(stream);
+                        product.ProductPhoto = null; // Set the property to null to avoid saving the file to the server
+                        product.PhotoFile = stream.ToArray(); // Assign the byte array to the model property
+                    }
+                }
+
+                var responseMessage = await _httpClient.PostAsJsonAsync("api/products", product);
+
+                //product.ProductId = Guid.NewGuid();
+                //_context.Add(product);
+                //await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
             return View(product);

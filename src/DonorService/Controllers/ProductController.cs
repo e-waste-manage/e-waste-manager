@@ -104,7 +104,7 @@ public class ProductsController : ControllerBase
                     { "Category", new AttributeValue { S = product.Category.ToString() } },
                     { "PickupLocation", new AttributeValue { S = product.PickupLocation.ToString() } },
                     { "ContactNumber", new AttributeValue { S = product.ContactNumber.ToString() } },
-                    { "ProductStatus", new AttributeValue { S = product.Status.ToString() } },
+                    { "ProductStatus", new AttributeValue { S = ProductStatus.Created.ToString() } },
                     { "UserID", new AttributeValue { S = product.UserID.ToString() } }
                 }
         };
@@ -296,7 +296,8 @@ public class ProductsController : ControllerBase
                         ProductId = Guid.Parse(item["ProductId"].S),
                         Name = item["Name"].S,
                         Description = item["Description"].S,
-                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S)
+                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
+                        ListedDate = DateTime.Parse(item["ListedDate"].S)
                     };
                     if (item.TryGetValue("VideoUrl", out var vurl)) product.VideoUrl = GetSignedS3ObjectUrl(vurl.S);
                     if (item.TryGetValue("PhotoUrl", out var purl)) product.PhotoUrl = GetSignedS3ObjectUrl(purl.S);

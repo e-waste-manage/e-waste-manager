@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.Serialization;
 
 namespace E_waste.Areas.Identity.Data
 {
@@ -64,7 +66,7 @@ namespace E_waste.Areas.Identity.Data
         public string? Description { get; set; }
 
         [Column(TypeName = "nvarchar(256)")]
-        public ProductCategory? Category { get; set; }
+        public ProductCategory Category { get; set; }
 
         [Column(TypeName = "nvarchar(256)")]
         [DisplayName("Video Url link")]
@@ -84,5 +86,9 @@ namespace E_waste.Areas.Identity.Data
         [Column(TypeName = "varbinary(MAX)")]
         [DisplayName("Photo file")]
         public byte[]? PhotoFile { get; set; }
+
+        [FromForm]
+        [Display(Name = "Product Photo")]
+        public IFormFile? ProductPhoto { get; set; }
     }
 }
