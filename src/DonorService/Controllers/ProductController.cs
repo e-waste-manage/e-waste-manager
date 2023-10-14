@@ -97,7 +97,7 @@ public class ProductsController : ControllerBase
             Item = new Dictionary<string, AttributeValue>
                 {
                     { "ProductId", new AttributeValue { S = Guid.NewGuid().ToString() } },
-                    { "ListedDate" , new AttributeValue {S = DateTime.Now.ToString() } },
+                    { "ListedDate" , new AttributeValue {S = DateTime.Now.ToShortDateString() } },
                     { "Quantity" , new AttributeValue {N = product.Quantity.ToString() } },
                     { "Name", new AttributeValue { S = product.Name } },
                     { "Description", new AttributeValue { S = product.Description } },
@@ -297,6 +297,8 @@ public class ProductsController : ControllerBase
                         Name = item["Name"].S,
                         Description = item["Description"].S,
                         Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
+                        PickupLocation = item["PickupLocation"].S,
+                        ContactNumber = item["ContactNumber"].S,
                         ListedDate = DateTime.Parse(item["ListedDate"].S)
                     };
                     if (item.TryGetValue("VideoUrl", out var vurl)) product.VideoUrl = GetSignedS3ObjectUrl(vurl.S);
