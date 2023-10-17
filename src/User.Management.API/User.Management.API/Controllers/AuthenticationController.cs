@@ -33,6 +33,7 @@ namespace User.Management.API.Controllers
         }
 
         [HttpPost]
+        [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterUser registerUser, string role)
         {
             //Check User Exist 
