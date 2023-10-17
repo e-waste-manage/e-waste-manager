@@ -1,0 +1,25 @@
+﻿@page
+@model GetProductModel
+@{
+    ViewData["Title"] = "Get Product Details";
+}
+
+<h1>Get Product Details</h1>
+<form method="post">
+    <div class="form-group">
+        <label for="productId">Product ID:</label>
+        <input asp-for="ProductId" class="form-control" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Get Product</button>
+</form>
+
+@if (Model.Product != null)
+{
+    <h2>Product Details</h2>
+    <p><strong>Name:</strong> @Model.Product.Name</p>
+    <p><strong>Description:</strong> @Model.Product.Description</p>
+    <p><strong>Price:</strong> @Model.Product.Price</p>
+    <p><strong>Category:</strong> @Model.Product.Category</p>
+    <p><strong>Image URL:</strong> @Model.Product.PhotoUrl</p>
+    <img src="@Model.Product.PhotoUrl" alt="Product Image" width="200" />
+}

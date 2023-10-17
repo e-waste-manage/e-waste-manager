@@ -3,90 +3,30 @@
 @{
     ViewData["Title"] = "Index";
 }
-<div style="width: 1280px;margin-left: -5rem;">
+<div class="container">
     <h1>Marketplace</h1>
 
     <p>
-        <a asp-action="AddOrEdit"> Post product </a>
+        <a asp-action="AddOrEdit" class="btn btn-primary">Post Product</a>
+        <a asp-action="CreateRequest" class="btn btn-primary">Create Request</a>
     </p>
-    <table class="table" >
-        <thead>
-            <tr>
-                <th style="width:106px;">
-                    @Html.DisplayNameFor(model => model.ListedDate)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Quantity)
-                </th>
-                <th style="width:142px;">
-                    @Html.DisplayNameFor(model => model.PickupLocation)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ContactNumber)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Status)
-                </th>
-                <th style="width:142px;">
-                    @Html.DisplayNameFor(model => model.Name)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Description)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Category)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.VideoUrl)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.PhotoUrl)
-                </th>
-                <th>
-                </th>
-                <th>
-                </th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-    @foreach (var item in Model) {
-            <tr>
-                <td>
-                    @Html.DisplayFor(modelItem => item.ListedDate)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Quantity)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.PickupLocation)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.ContactNumber)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Status)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Description)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Category)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.VideoUrl)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.PhotoUrl)
-                </td>
-                <td id="td_Request">
-                        <a asp-action="Request" asp-route-id="@item.ProductId">Request</a>
-                </td>
-            </tr>
-    }
-        </tbody>
-    </table>
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <img src="@item.PhotoUrl" class="card-img-top" alt="Product Image" width="200" height="200">
+                    <div class="card-body">
+                        <h5 class="card-title">@item.Name</h5>
+                        <p class="card-text">@item.Description</p>
+                        <p class="card-text"><strong>Category:</strong> @item.Category</p>
+                        <p class="card-text"><strong>Location:</strong> @item.PickupLocation</p>
+                        <p class="card-text"><strong>Contact:</strong> @item.ContactNumber</p>
+                        <p class="card-text"><strong>Listed Date:</strong> @item.ListedDate.ToShortDateString()</p>
+                        <a asp-action="Request" asp-route-id="@item.ProductId" class="btn btn-primary">Request</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>

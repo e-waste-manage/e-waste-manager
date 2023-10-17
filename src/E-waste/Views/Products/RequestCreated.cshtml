@@ -1,0 +1,13 @@
+﻿@model E_waste.Models.ReceiverRequestItem
+
+@{
+    ViewData["Title"] = "Request Created Successfully";
+}
+
+<div class="container mt-5">
+    <h1>Request Created</h1>
+    <p>Your request has been successfully created for the product:</p>
+    <p>Product Name: @Model.RequestItemName</p>
+    <p>Request Date: @DateTime.Now.ToShortDateString()</p>
+    <p>We will notify you once we have found a matching request. </p>
+</div>
