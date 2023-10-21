@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using User.Management.API.Models;
-using User.Management.API.Models.Authentication.SignUp;
 
 namespace User.Management.API.Controllers
 {

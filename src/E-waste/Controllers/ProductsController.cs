@@ -23,8 +23,8 @@ namespace E_waste.Controllers
             _context = context;
             _httpClient = new HttpClient()
             {
-                //BaseAddress = new Uri("https://localhost:7156")
-                BaseAddress = new Uri("http://donorservice-dev.eba-3msbepdm.ap-southeast-1.elasticbeanstalk.com")
+                BaseAddress = new Uri("https://localhost:44363/")
+                //BaseAddress = new Uri("http://donorservice-dev.eba-3msbepdm.ap-southeast-1.elasticbeanstalk.com")
             };
             _httpClient2 = new HttpClient()
             {
@@ -39,6 +39,7 @@ namespace E_waste.Controllers
             var products = new List<Product>();
 
             HttpResponseMessage response = await _httpClient.GetAsync("/api/products/category/Laptop");
+            string responsemessage = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
             {
@@ -100,6 +101,7 @@ namespace E_waste.Controllers
                 }
 
                 var responseMessage = await _httpClient.PostAsJsonAsync("api/products", product);
+                string response = await responseMessage.Content.ReadAsStringAsync();
 
                 //product.ProductId = Guid.NewGuid();
                 //_context.Add(product);
