@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -43,11 +44,11 @@ namespace User.Management.API.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden,
                     new Response { Status = "Error", Message = "User already exists!" });
             }
-
             //Add the User in the database
             ApplicationUser user = new()
             {
                 Email = registerUser.Email,
+                NormalizedEmail = registerUser.Email.ToUpper(),
                 Name = registerUser.Name,
                 Address = registerUser.Address,
                 SecurityStamp = Guid.NewGuid().ToString(),
