@@ -93,6 +93,7 @@ namespace E_waste.Areas.Identity.Pages.Account
             }
 
             returnUrl ??= Url.Content("~/");
+            HttpContext.Session.SetString("UserEmail", "");
 
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
@@ -115,6 +116,7 @@ namespace E_waste.Areas.Identity.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
+                    HttpContext.Session.SetString("UserEmail", Input.Email.ToString());
                     _logger.LogInformation("User logged in.");
                     returnUrl = "/Products/Index";
                     return LocalRedirect(returnUrl);
