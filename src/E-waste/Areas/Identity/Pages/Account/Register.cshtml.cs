@@ -23,6 +23,8 @@ using System.Net.Http;
 using System.Text.Json;
 using Microsoft.CodeAnalysis.Scripting;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using NuGet.Protocol;
 
 namespace E_waste.Areas.Identity.Pages.Account
 {
@@ -129,6 +131,12 @@ namespace E_waste.Areas.Identity.Pages.Account
 
         public bool ShowRegistrationAlert { get; set; }
 
+        public class ApiResponse
+        {
+            public string status { get; set; }
+            public string message { get; set; }
+        }
+
 
 
 
@@ -181,8 +189,11 @@ namespace E_waste.Areas.Identity.Pages.Account
                 {
                     // Optionally, handle the error response
                     var errorResponse = await response.Content.ReadAsStringAsync();
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse>(errorResponse);
                     // Process the error response as needed
-                    ModelState.AddModelError(string.Empty, "Registration failed. Please try again.");
+                    ModelState.AddModelError(string.Empty, apiResponse.message);
+
+
                     return Page();
                 }
             }

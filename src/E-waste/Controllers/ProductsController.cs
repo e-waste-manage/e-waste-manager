@@ -36,7 +36,7 @@ namespace E_waste.Controllers
         // GET: Products
         public async Task<IActionResult> Index([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile")] Product product)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             var products = new List<Product>();
@@ -62,7 +62,7 @@ namespace E_waste.Controllers
         // GET: Products/Details/5
         public async Task<IActionResult> Details(Guid? id)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             if (id == null || _context.Products == null)
@@ -83,7 +83,7 @@ namespace E_waste.Controllers
         // GET: Products/AddOrEdit
         public IActionResult AddOrEdit()
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             return View(new Product());
@@ -123,7 +123,7 @@ namespace E_waste.Controllers
         // GET: Products/Request/5
         public async Task<IActionResult> Request(Guid? id)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             if (id == null)
@@ -153,7 +153,7 @@ namespace E_waste.Controllers
         // GET: Products/Delete/5
         public async Task<IActionResult> Delete(Guid? id)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             if (id == null || _context.Products == null)
@@ -176,7 +176,7 @@ namespace E_waste.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             if (_context.Products == null)
@@ -201,7 +201,7 @@ namespace E_waste.Controllers
 
         public IActionResult CreateRequest()
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             return View(new ReceiverRequestItem());
@@ -211,7 +211,7 @@ namespace E_waste.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateRequest(ReceiverRequestItem requestItem)
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
+            if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
             if (ModelState.IsValid)

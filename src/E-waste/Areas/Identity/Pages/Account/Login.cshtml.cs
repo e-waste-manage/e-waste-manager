@@ -18,6 +18,8 @@ using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using static E_waste.Areas.Identity.Pages.Account.RegisterModel;
+using Microsoft.AspNetCore.Http;
 
 namespace E_waste.Areas.Identity.Pages.Account
 {
@@ -71,8 +73,7 @@ namespace E_waste.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required]
-            [EmailAddress]
-            public string Email { get; set; }
+            public string username { get; set; }
 
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -80,14 +81,34 @@ namespace E_waste.Areas.Identity.Pages.Account
             /// </summary>
             [Required]
             [DataType(DataType.Password)]
-            public string Password { get; set; }
+            public string password { get; set; }
 
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
-            [Display(Name = "Remember me?")]
-            public bool RememberMe { get; set; }
+
+        }
+
+        public class InputModel2
+        {
+            /// <summary>
+            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
+            ///     directly from your code. This API may change or be removed in future releases.
+            /// </summary>
+            public string userID { get; set; }
+
+            public string token { get; set; }
+
+            public string expiration { get; set; }
+        }
+
+
+
+        public class ApiResponse
+        {
+            public string status { get; set; }
+            public string message { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
@@ -137,9 +158,13 @@ namespace E_waste.Areas.Identity.Pages.Account
                 if (response.IsSuccessStatusCode)
                 {
                     // Optionally, you can handle the success response
-                    var apiResponse = await response.Content.ReadAsStringAsync();
+                    
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    var apiResponse = JsonSerializer.Deserialize<InputModel2>(errorResponse);
+                    // Process the error response as needed
+                    HttpContext.Session.SetString("Userid", apiResponse.userID.ToString());
                     // Process the API response as needed
-                    return RedirectToPage("/Products/Index"); // Redirect to a success page
+                    return LocalRedirect("/Products/Index"); // Redirect to a success page
                 }
                 else
                 {
