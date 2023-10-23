@@ -45,8 +45,25 @@
         <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
     </div>
     <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+
+    @if (Model.ShowRegistrationAlert)
+    {
+        <text>
+            <script>
+                alert('Registration successful! Please verify your email.');
+                window.location.href = '/Identity/Account/Login';
+            </script>
+        </text>
+    }
 </form>
+
+
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+@*     <script type="text/javascript">
+        function Showalert() {
+        alert('Call JavaScript function from codebehind');
+        }
+    </script> *@
 }

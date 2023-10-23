@@ -15,6 +15,9 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 
 namespace E_waste.Areas.Identity.Pages.Account
 {
@@ -22,11 +25,13 @@ namespace E_waste.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger, IHttpClientFactory httpClientFactory)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
 
         /// <summary>
@@ -102,41 +107,87 @@ namespace E_waste.Areas.Identity.Pages.Account
             ReturnUrl = returnUrl;
         }
 
-        public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+        public async Task<IActionResult> OnPostAsync()
         {
-            returnUrl ??= Url.Content("~/");
+            // Gather user registration data from the form or other sources
+            //var userData = new
+            //{
+            //    Username = Input.Username,
+            //    Email = "user@example.com",
+            //    Password = "examplePassword"
+            //    // Add other registration fields as needed
+            //};
 
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            // Convert user data to JSON
+            var jsonUserData = JsonSerializer.Serialize(Input);
 
-            if (ModelState.IsValid)
+            // Create an instance of HttpClient using the factory
+            using (var httpClient = _httpClientFactory.CreateClient())
             {
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
+                // Set the API endpoint URL
+                var apiUrl = "https://localhost:7010/api/Authentication/login";
+
+                // Create a StringContent with JSON data
+                var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
+
+                // Make the POST request and get the response
+                var response = await httpClient.PostAsync(apiUrl, content);
+
+                // Check if the request was successful (status code 2xx)
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("User logged in.");
-                    returnUrl = "/Products/Index";
-                    return LocalRedirect(returnUrl);
-                }
-                if (result.RequiresTwoFactor)
-                {
-                    return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
-                }
-                if (result.IsLockedOut)
-                {
-                    _logger.LogWarning("User account locked out.");
-                    return RedirectToPage("./Lockout");
+                    // Optionally, you can handle the success response
+                    var apiResponse = await response.Content.ReadAsStringAsync();
+                    // Process the API response as needed
+                    return RedirectToPage("/Products/Index"); // Redirect to a success page
                 }
                 else
                 {
+                    // Optionally, handle the error response
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    // Process the error response as needed
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                     return Page();
                 }
             }
 
-            // If we got this far, something failed, redisplay form
-            return Page();
+            // COMMENTED OUT
+            //public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+            //{
+            //    returnUrl ??= Url.Content("~/");
+
+            //    ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            //    if (ModelState.IsValid)
+            //    {
+            //        // This doesn't count login failures towards account lockout
+            //        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+            //        var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+            //        if (result.Succeeded)
+            //        {
+            //            _logger.LogInformation("User logged in.");
+            //            returnUrl = "/Products/Index";
+            //            return LocalRedirect(returnUrl);
+            //        }
+            //        if (result.RequiresTwoFactor)
+            //        {
+            //            return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
+            //        }
+            //        if (result.IsLockedOut)
+            //        {
+            //            _logger.LogWarning("User account locked out.");
+            //            return RedirectToPage("./Lockout");
+            //        }
+            //        else
+            //        {
+            //            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            //            return Page();
+            //        }
+            //    }
+
+            //    // If we got this far, something failed, redisplay form
+            //    return Page();
+            //}
         }
     }
 }
