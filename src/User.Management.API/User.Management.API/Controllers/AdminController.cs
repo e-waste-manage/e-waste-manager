@@ -5,7 +5,6 @@ using User.Management.API.Models;
 
 namespace User.Management.API.Controllers
 {
-    [Authorize(Roles ="Admin")]
     [Route("api/[controller]")]
     [ApiController]   
     public class AdminController : ControllerBase
