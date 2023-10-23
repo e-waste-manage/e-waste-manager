@@ -131,6 +131,7 @@ namespace User.Management.API.Controllers
 
                 return Ok(new
                 {
+                    userID = user.Id,
                     token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
                     expiration = jwtToken.ValidTo
                 });
