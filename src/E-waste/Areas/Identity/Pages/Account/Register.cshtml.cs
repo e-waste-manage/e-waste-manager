@@ -19,6 +19,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
+using System.Text.Json;
+using Microsoft.CodeAnalysis.Scripting;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace E_waste.Areas.Identity.Pages.Account
 {
@@ -30,13 +34,15 @@ namespace E_waste.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IHttpClientFactory httpClientFactory)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -44,6 +50,7 @@ namespace E_waste.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
 
         /// <summary>
@@ -120,6 +127,10 @@ namespace E_waste.Areas.Identity.Pages.Account
             public string ConfirmPassword { get; set; }
         }
 
+        public bool ShowRegistrationAlert { get; set; }
+
+
+
 
         public async Task OnGetAsync(string returnUrl = null)
         {
@@ -127,62 +138,113 @@ namespace E_waste.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
 
-        public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+
+        public async Task<IActionResult> OnPostAsync()
         {
-            returnUrl ??= Url.Content("~/");
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
-            if (ModelState.IsValid)
+            // Gather user registration data from the form or other sources
+            //var userData = new
+            //{
+            //    Username = Input.Username,
+            //    Email = "user@example.com",
+            //    Password = "examplePassword"
+            //    // Add other registration fields as needed
+            //};
+
+            // Convert user data to JSON
+            var jsonUserData = JsonSerializer.Serialize(Input);
+            var role = "Admin";
+            // Create an instance of HttpClient using the factory
+            using (var httpClient = _httpClientFactory.CreateClient())
             {
-                var user = CreateUser();
+                // Set the API endpoint URL
+                var apiUrl = "https://localhost:7010/api/Authentication/Register";
 
+                // Create a StringContent with JSON data
+                var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
 
-                user.Name = Input.Name;
-                user.Address = Input.Address;
-                user.UserName = Input.Username;
-                user.Email = Input.Email;
-                user.PhoneNumber = Input.Phonenumber;
+                // Make the POST request and get the response
+                var response = await httpClient.PostAsync($"{apiUrl}?role={role}", content);
 
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-                await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-                var result = await _userManager.CreateAsync(user, Input.Password);
-
-                if (result.Succeeded)
+                // Check if the request was successful (status code 2xx)
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("User created a new account with password.");
-
-                    var userId = await _userManager.GetUserIdAsync(user);
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                    var callbackUrl = Url.Page(
-                        "/Account/ConfirmEmail",
-                        pageHandler: null,
-                        values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                        protocol: Request.Scheme);
-
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
-
-                    if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                    {
-                        return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
-                    }
-                    else
-                    {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
-                    }
+                    //Response.Write("<script>alert('Successfully Registered, Please verify your Email')</script>"); 
+                    ShowRegistrationAlert = true;
+                    // Optionally, you can handle the success response
+                    var apiResponse = await response.Content.ReadAsStringAsync();
+                    //ScriptManager.RegisterStartupScript(this, GetType(), "displayalertmessage", "Showalert();", true);
+                    // Process the API response as needed
+                    //return LocalRedirect("/Identity/Account/Login"); // Redirect to a success page
+                    return Page();
                 }
-                foreach (var error in result.Errors)
+                else
                 {
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    // Optionally, handle the error response
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    // Process the error response as needed
+                    ModelState.AddModelError(string.Empty, "Registration failed. Please try again.");
+                    return Page();
                 }
             }
-
-            // If we got this far, something failed, redisplay form
-            return Page();
         }
 
-        private ApplicationUser CreateUser()
+    // COMMENTED OUT
+    //public async Task<IActionResult> OnPostAsync(string returnUrl = null)
+    //{
+    //    returnUrl ??= Url.Content("~/");
+    //    ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+    //    if (ModelState.IsValid)
+    //    {
+    //        var user = CreateUser();
+
+
+    //        user.Name = Input.Name;
+    //        user.Address = Input.Address;
+    //        user.UserName = Input.Username;
+    //        user.Email = Input.Email;
+    //        user.PhoneNumber = Input.Phonenumber;
+
+    //        await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+    //        await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+    //        var result = await _userManager.CreateAsync(user, Input.Password);
+
+    //        if (result.Succeeded)
+    //        {
+    //            _logger.LogInformation("User created a new account with password.");
+
+    //            var userId = await _userManager.GetUserIdAsync(user);
+    //            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+    //            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+    //            var callbackUrl = Url.Page(
+    //                "/Account/ConfirmEmail",
+    //                pageHandler: null,
+    //                values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
+    //                protocol: Request.Scheme);
+
+    //            await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
+    //                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+
+    //            if (_userManager.Options.SignIn.RequireConfirmedAccount)
+    //            {
+    //                return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
+    //            }
+    //            else
+    //            {
+    //                await _signInManager.SignInAsync(user, isPersistent: false);
+    //                return LocalRedirect(returnUrl);
+    //            }
+    //        }
+    //        foreach (var error in result.Errors)
+    //        {
+    //            ModelState.AddModelError(string.Empty, error.Description);
+    //        }
+    //    }
+
+        // If we got this far, something failed, redisplay form
+    //    return Page();
+    //}
+
+    private ApplicationUser CreateUser()
         {
             try
             {
