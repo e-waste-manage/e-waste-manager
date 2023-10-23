@@ -29,9 +29,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 // Perform a database query or any other necessary logic to retrieve the item by ID
                 // For example, you can use _dynamoDbClient to fetch the item from DynamoDB
                 // Replace this with your actual data retrieval logic
@@ -75,9 +72,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 // Input validation
                 if (receiverItemRequest == null)
                 {
@@ -125,9 +119,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 // Check if the product with the given ID exists
                 var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
                 var search = table.Query(new QueryFilter("RequestId", QueryOperator.Equal, requestId));
@@ -166,9 +157,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 // Check if the product with the given ID exists
                 var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
                 var search = table.Query(new QueryFilter("RequestId", QueryOperator.Equal, requestId));
@@ -210,9 +198,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 // Check if the product with the given ID exists
                 var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
                 var search = table.Query(new QueryFilter("RequestId", QueryOperator.Equal, requestId));
@@ -240,9 +225,6 @@ namespace ReceiverService.Controllers
         {
             try
             {
-                if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                    return LocalRedirect("/Identity/Account/Login");
-
                 using (var client = new AmazonDynamoDBClient())
                 {
                     var request = new QueryRequest

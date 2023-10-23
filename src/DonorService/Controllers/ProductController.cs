@@ -30,9 +30,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             // Retrieve the product by ProductId from DynamoDB
             var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
@@ -82,9 +79,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             // Handle video and photo upload to Amazon S3.
             if (product.VideoFile != null)
             {
@@ -150,9 +144,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             // Check if the product with the given ID exists
             var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
@@ -218,9 +209,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             // Check if the product with the given ID exists
             var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
@@ -252,9 +240,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             // Check if the product with the given ID exists
             var table = Table.LoadTable(_dynamoDbClient, _dynamoDBTableName);
             var search = table.Query(new QueryFilter("ProductId", QueryOperator.Equal, productId));
@@ -293,9 +278,6 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            if (HttpContext.Session.GetString("UserEmail") == "" || HttpContext.Session.GetString("UserEmail") == null)
-                return LocalRedirect("/Identity/Account/Login");
-
             using (var client = new AmazonDynamoDBClient())
             {
                 var request = new QueryRequest
