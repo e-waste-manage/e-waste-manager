@@ -96,6 +96,13 @@ namespace E_waste.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddOrEdit([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile,ProductPhoto")] Product product)
         {
+
+            if (HttpContext.Session.GetString("Userid") != "")
+            {
+                Guid userguid = new Guid(HttpContext.Session.GetString("Userid"));
+                product.UserID = userguid;
+            }
+                 
             if (ModelState.IsValid)
             {
                 if (product.ProductPhoto != null && product.ProductPhoto.Length > 0)
@@ -213,7 +220,12 @@ namespace E_waste.Controllers
         {
             if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
-
+            else
+            {
+                Guid userguid = new Guid(HttpContext.Session.GetString("Userid"));
+                requestItem.ReceiverId = userguid;
+            }
+            
             if (ModelState.IsValid)
             {
                 var responseMessage = await _httpClient2.PostAsJsonAsync("Receiver", requestItem);
