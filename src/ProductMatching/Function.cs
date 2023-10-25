@@ -102,9 +102,7 @@ public class DynamoDBStreamFunction
                 var productLink = $"<a href=\"{GenerateProductLink(newProduct)}\">{newProduct.Name}</a>";
                 var acceptLink = $"<a href=\"{GenerateAcceptLink(request, newProduct)}\">Accept</a>";
 
-                var emailBody = $"A matching product has been found for your request: {productLink}. " +
-                                $"Please click on this link to check more details. " +
-                                $"You may click the {acceptLink} button below to accept the item.";
+                var emailBody = $"A matching product has been found for your request: {productLink}. ";
 
                 var emailRequest = new SendEmailRequest
                 {

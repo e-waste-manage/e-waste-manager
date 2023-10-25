@@ -83,10 +83,17 @@ namespace E_waste.Controllers
         // GET: Products/AddOrEdit
         public IActionResult AddOrEdit()
         {
+
             if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
-            return View(new Product());
+            var values = JsonConvert.DeserializeObject<Dictionary<string, string>>(HttpContext.Session.GetString("Userid"));
+            Product product = new Product();
+            product.ContactNumber = values["Email"];
+            product.PickupLocation = values["Address"];
+
+            // Pass the email address to the view
+            return View(product);
         }
 
         // POST: Products/Create
@@ -96,11 +103,14 @@ namespace E_waste.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddOrEdit([Bind("ProductId,ListedDate,Quantity,UserID,PickupLocation,ContactNumber,Status,Name,Description,Category,VideoUrl,PhotoUrl,VideoFile,PhotoFile,ProductPhoto")] Product product)
         {
-
             if (HttpContext.Session.GetString("Userid") != "")
             {
-                Guid userguid = new Guid(HttpContext.Session.GetString("Userid"));
+                var values = JsonConvert.DeserializeObject<Dictionary<string, string>>(HttpContext.Session.GetString("Userid"));
+                // Now you can access the individual values
+                Guid userguid = new Guid(values["UserID"]);
                 product.UserID = userguid;
+                product.ContactNumber = values["Email"];
+                product.PickupLocation = values["Address"];
             }
                  
             if (ModelState.IsValid)
@@ -211,7 +221,12 @@ namespace E_waste.Controllers
             if (HttpContext.Session.GetString("Userid") == "" || HttpContext.Session.GetString("Userid") == null)
                 return LocalRedirect("/Identity/Account/Login");
 
-            return View(new ReceiverRequestItem());
+            var values = JsonConvert.DeserializeObject<Dictionary<string, string>>(HttpContext.Session.GetString("Userid"));
+            ReceiverRequestItem receiverequest = new ReceiverRequestItem();
+            receiverequest.ContactNumber = values["Email"];
+            receiverequest.PickupLocation = values["Address"];
+
+            return View(receiverequest);
         }
 
         [HttpPost]
@@ -222,8 +237,12 @@ namespace E_waste.Controllers
                 return LocalRedirect("/Identity/Account/Login");
             else
             {
-                Guid userguid = new Guid(HttpContext.Session.GetString("Userid"));
+                var values = JsonConvert.DeserializeObject<Dictionary<string, string>>(HttpContext.Session.GetString("Userid"));
+                // Now you can access the individual values
+                Guid userguid = new Guid(values["UserID"]);
                 requestItem.ReceiverId = userguid;
+                requestItem.ContactNumber = values["Email"];
+                requestItem.PickupLocation = values["Address"];             
             }
             
             if (ModelState.IsValid)

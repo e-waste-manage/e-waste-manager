@@ -20,6 +20,7 @@ using System.Text;
 using System.Text.Json;
 using static E_waste.Areas.Identity.Pages.Account.RegisterModel;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace E_waste.Areas.Identity.Pages.Account
 {
@@ -97,7 +98,11 @@ namespace E_waste.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             public string userID { get; set; }
-
+            public string email { get; set; }
+            public string name { get; set; }
+            public string address { get; set; }
+            public string phoneNo { get; set; }
+            
             public string token { get; set; }
 
             public string expiration { get; set; }
@@ -140,14 +145,14 @@ namespace E_waste.Areas.Identity.Pages.Account
             //};
 
             // Convert user data to JSON
-            var jsonUserData = JsonSerializer.Serialize(Input);
+            var jsonUserData = System.Text.Json.JsonSerializer.Serialize(Input);
 
             // Create an instance of HttpClient using the factory
             using (var httpClient = _httpClientFactory.CreateClient())
             {
                 // Set the API endpoint URL
-                //var apiUrl = "https://localhost:7010/api/Authentication/login";
-                var apiUrl = "http://accountservice.ap-southeast-1.elasticbeanstalk.com/api/Authentication/login";
+                var apiUrl = "https://localhost:7010/api/authentication/login";
+                //var apiUrl = "http://accountservice.ap-southeast-1.elasticbeanstalk.com/api/Authentication/login";
 
                 // Create a StringContent with JSON data
                 var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
@@ -161,9 +166,23 @@ namespace E_waste.Areas.Identity.Pages.Account
                     // Optionally, you can handle the success response
                     
                     var errorResponse = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonSerializer.Deserialize<InputModel2>(errorResponse);
-                    // Process the error response as needed
-                    HttpContext.Session.SetString("Userid", apiResponse.userID.ToString());
+                    var apiResponse = System.Text.Json.JsonSerializer.Deserialize<InputModel2>(errorResponse);
+
+                    var values = new Dictionary<string, string>
+                    {
+                        { "UserID", apiResponse.userID},
+                        { "Email", apiResponse.email},
+                        { "Address", apiResponse.address },
+                        { "Name",  apiResponse.name},
+                        { "PhoneNo",  apiResponse.phoneNo}
+                    };
+
+                    // Serialize the values to JSON
+                    string json = JsonConvert.SerializeObject(values);
+
+                    // Store the JSON string in the session
+                    HttpContext.Session.SetString("Userid", json);
+
                     // Process the API response as needed
                     return LocalRedirect("/Products/Index"); // Redirect to a success page
                 }

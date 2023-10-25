@@ -132,6 +132,10 @@ namespace User.Management.API.Controllers
                 return Ok(new
                 {
                     userID = user.Id,
+                    email = user.NormalizedEmail,
+                    name = user.Name,
+                    address = user.Address,
+                    phoneNo = user.PhoneNumber,
                     token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
                     expiration = jwtToken.ValidTo
                 });
