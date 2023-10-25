@@ -151,8 +151,8 @@ namespace E_waste.Areas.Identity.Pages.Account
             using (var httpClient = _httpClientFactory.CreateClient())
             {
                 // Set the API endpoint URL
-                var apiUrl = "https://localhost:7010/api/authentication/login";
-                //var apiUrl = "http://accountservice.ap-southeast-1.elasticbeanstalk.com/api/Authentication/login";
+                //var apiUrl = "https://localhost:7010/api/authentication/login";
+                var apiUrl = "http://accountservice.ap-southeast-1.elasticbeanstalk.com/api/Authentication/login";
 
                 // Create a StringContent with JSON data
                 var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
