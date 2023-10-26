@@ -335,12 +335,6 @@ public class ProductsController : ControllerBase
                 var request = new QueryRequest
                 {
                     TableName = "ProductList",
-                    ScanIndexForward = false,
-                    FilterExpression = "ProductStatus = :status", // Filter condition on a non-key attribute
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                    {
-                        { ":status", new AttributeValue { S = ProductStatus.Created.ToString() }}
-                    },
                 };
 
                 var response = await client.QueryAsync(request);
