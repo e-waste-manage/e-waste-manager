@@ -335,8 +335,6 @@ public class ProductsController : ControllerBase
                 var request = new QueryRequest
                 {
                     TableName = "ProductList",
-                    IndexName = "CategorySort",
-                    KeyConditionExpression = null,
                     ScanIndexForward = false,
                     FilterExpression = "ProductStatus = :status", // Filter condition on a non-key attribute
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
