@@ -325,57 +325,6 @@ public class ProductsController : ControllerBase
         }
     }
 
-    [HttpGet("list")]
-    public async Task<IActionResult> GetList()
-    {
-        try
-        {
-            using (var client = new AmazonDynamoDBClient())
-            {
-                var request = new QueryRequest
-                {
-                    TableName = "ProductList",
-                    IndexName = "CategorySort",
-                    KeyConditionExpression = "Category = :category",
-                    ScanIndexForward = false,
-                    FilterExpression = "ProductStatus = :status", // Filter condition on a non-key attribute
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                    {
-                        { ":status", new AttributeValue { S = ProductStatus.Created.ToString() }}
-                    },
-                };
-
-                var response = await client.QueryAsync(request);
-
-                var products = new List<Product>();
-
-                foreach (var item in response.Items)
-                {
-                    var product = new Product
-                    {
-                        ProductId = Guid.Parse(item["ProductId"].S),
-                        Name = item["Name"].S,
-                        Description = item["Description"].S,
-                        Category = (ProductCategory)Enum.Parse(typeof(ProductCategory), item["Category"].S),
-                        PickupLocation = item["PickupLocation"].S,
-                        ContactNumber = item["ContactNumber"].S,
-                        ListedDate = DateTime.ParseExact(item["ListedDate"].S, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                    };
-                    if (item.TryGetValue("VideoUrl", out var vurl)) product.VideoUrl = GetSignedS3ObjectUrl(vurl.S);
-                    if (item.TryGetValue("PhotoUrl", out var purl)) product.PhotoUrl = GetSignedS3ObjectUrl(purl.S);
-                    products.Add(product);
-                }
-
-
-                return Ok(products);
-            }
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal Server Error: {ex.Message}");
-        }
-    }
-
     private async Task UploadFileToS3(byte[] fileData, string objectKey)
     {
         using (var stream = new MemoryStream(fileData))
