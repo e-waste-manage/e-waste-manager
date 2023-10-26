@@ -332,12 +332,12 @@ public class ProductsController : ControllerBase
         {
             using (var client = new AmazonDynamoDBClient())
             {
-                var request = new QueryRequest
+                var request = new ScanRequest
                 {
                     TableName = "ProductList",
                 };
 
-                var response = await client.QueryAsync(request);
+                var response = await client.ScanAsync(request);
 
                 var products = new List<Product>();
 
