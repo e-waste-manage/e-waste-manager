@@ -41,7 +41,7 @@ namespace E_waste.Controllers
 
             var products = new List<Product>();
 
-            HttpResponseMessage response = await _httpClient.GetAsync("/api/products/category/Laptop");
+            HttpResponseMessage response = await _httpClient.GetAsync("/api/products/lists");
             string responsemessage = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
