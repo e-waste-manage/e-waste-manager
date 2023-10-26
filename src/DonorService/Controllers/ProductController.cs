@@ -326,7 +326,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetList(ProductCategory categoryName)
+    public async Task<IActionResult> GetList()
     {
         try
         {
@@ -336,6 +336,7 @@ public class ProductsController : ControllerBase
                 {
                     TableName = "ProductList",
                     IndexName = "CategorySort",
+                    KeyConditionExpression = "1 = 1",
                     ScanIndexForward = false,
                     FilterExpression = "ProductStatus = :status", // Filter condition on a non-key attribute
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
